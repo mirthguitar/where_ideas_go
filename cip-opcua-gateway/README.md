@@ -10,6 +10,9 @@ them as an OPC-UA server for analytics tools.
 
 ---
 <img src="guipic.png">
+<img src="livetags.png">
+<img src="opcua.png">
+<img src="tags.png">
 
 
 ## Architecture
