@@ -6,93 +6,155 @@
 <title>CIP → OPC-UA Gateway</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#0a0e17; --panel:#111827; --border:#1e2d45;
-  --accent:#00d4ff; --green:#00ff9d; --warn:#ffb300; --red:#ff3d5a;
-  --text:#c8d8e8; --muted:#4a6080;
-  --mono:'Share Tech Mono',monospace; --sans:'Barlow',sans-serif;
+:root{
+  --bg:#0a0e17;--panel:#111827;--panel2:#0f1624;--border:#1e2d45;
+  --accent:#00d4ff;--green:#00ff9d;--warn:#ffb300;--red:#ff3d5a;
+  --text:#c8d8e8;--muted:#4a6080;
+  --mono:'Share Tech Mono',monospace;--sans:'Barlow',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
-header{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:56px;
-  border-bottom:1px solid var(--border);background:#111827;position:sticky;top:0;z-index:99}
-.logo{font-family:var(--mono);color:var(--accent);font-size:.95rem;letter-spacing:.04em}
+
+/* NAV TABS */
+header{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;
+  height:56px;border-bottom:1px solid var(--border);background:#111827;
+  position:sticky;top:0;z-index:99}
+.logo{font-family:var(--mono);color:var(--accent);font-size:.9rem;letter-spacing:.04em;white-space:nowrap}
 .logo b{color:var(--green)}
-.badges{display:flex;gap:.75rem}
-.badge{display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:.7rem;
-  padding:.25rem .65rem;border:1px solid var(--border);border-radius:2px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
-.dot.ok{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite}
-.dot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
+.badges{display:flex;gap:.65rem;align-items:center}
+.badge{display:flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.68rem;
+  padding:.22rem .6rem;border:1px solid var(--border);border-radius:2px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.ok{background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite}
+.dot.err{background:var(--red);box-shadow:0 0 5px var(--red)}
+.dot.warn{background:var(--warn)}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
-main{max-width:1300px;margin:0 auto;padding:1.5rem}
+
+nav{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--panel2);padding:0 1.5rem}
+.tab{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  padding:.7rem 1.1rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;
+  transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* PAGES */
+.page{display:none;max-width:1280px;margin:0 auto;padding:1.5rem}
+.page.on{display:block}
+
+/* STATS */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
-.stat{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:.9rem 1.1rem}
-.slabel{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
-.sval{font-family:var(--mono);font-size:1.5rem;color:var(--accent);margin-top:.2rem}
+@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:.85rem 1rem}
+.slbl{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.sval{font-family:var(--mono);font-size:1.45rem;color:var(--accent);margin-top:.18rem}
 .sval.g{color:var(--green)}.sval.r{color:var(--red)}.sval.w{color:var(--warn)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
-@media(max-width:800px){.stats{grid-template-columns:1fr 1fr}.row2{grid-template-columns:1fr}}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:3px}
-.ph{display:flex;align-items:center;justify-content:space-between;
-  padding:.65rem 1.1rem;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
-.pt{font-family:var(--mono);font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
-.pb{padding:1.1rem}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
-.ff{display:flex;flex-direction:column;gap:.3rem}
-.ff label{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.07em}
+
+/* PANELS */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:3px;margin-bottom:1.25rem}
+.ch{display:flex;align-items:center;justify-content:space-between;
+  padding:.6rem 1.1rem;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.ct{font-family:var(--mono);font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+.cb{padding:1.1rem}
+
+/* FORMS */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem}
+.ff{display:flex;flex-direction:column;gap:.28rem}
+.ff label{font-family:var(--mono);font-size:.63rem;color:var(--muted);letter-spacing:.07em}
 .ff input,.ff select{background:rgba(0,0,0,.35);border:1px solid var(--border);color:var(--text);
-  font-family:var(--mono);font-size:.82rem;padding:.42rem .65rem;border-radius:2px;outline:none;
-  transition:border-color .2s}
+  font-family:var(--mono);font-size:.82rem;padding:.4rem .65rem;border-radius:2px;
+  outline:none;transition:border-color .2s;width:100%}
 .ff input:focus,.ff select:focus{border-color:var(--accent)}
 .full{grid-column:1/-1}
-.btn{padding:.45rem 1.2rem;background:transparent;border:1px solid var(--accent);color:var(--accent);
-  font-family:var(--mono);font-size:.75rem;cursor:pointer;border-radius:2px;transition:all .2s;margin-top:.85rem}
+.btn{padding:.42rem 1.1rem;background:transparent;border:1px solid var(--accent);color:var(--accent);
+  font-family:var(--mono);font-size:.73rem;cursor:pointer;border-radius:2px;
+  transition:all .2s;white-space:nowrap}
 .btn:hover{background:var(--accent);color:var(--bg)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.g{border-color:var(--green);color:var(--green)}.btn.g:hover{background:var(--green);color:var(--bg)}
 .btn.r{border-color:var(--red);color:var(--red)}.btn.r:hover{background:var(--red);color:#fff}
-.btn.sm{margin-top:0;padding:.18rem .5rem;font-size:.65rem}
-.brow{display:flex;gap:.65rem;flex-wrap:wrap}
-.msg{font-family:var(--mono);font-size:.72rem;color:var(--green);margin-top:.5rem;display:none}
-.info-row{margin-bottom:.9rem}
-.ilabel{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem}
-.ival{font-family:var(--mono);font-size:.82rem;color:var(--green);word-break:break-all}
-.ival.dim{color:var(--muted)}
-.toolbar{display:flex;gap:.65rem;margin-bottom:.9rem;flex-wrap:wrap;align-items:center}
-.fi{background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);
-  font-family:var(--mono);font-size:.78rem;padding:.35rem .65rem;border-radius:2px;
-  outline:none;flex:1;min-width:160px}
-.fi:focus{border-color:var(--accent)}
-.gpill{padding:.22rem .6rem;border-radius:2px;font-family:var(--mono);font-size:.68rem;
-  cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
-.gpill.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.07)}
+.btn.w{border-color:var(--warn);color:var(--warn)}.btn.w:hover{background:var(--warn);color:var(--bg)}
+.btn.sm{padding:.18rem .5rem;font-size:.63rem}
+.brow{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.85rem;align-items:center}
+.msg{font-family:var(--mono);font-size:.7rem;margin-top:.5rem;display:none}
+.msg.ok{color:var(--green)}.msg.err{color:var(--red)}
+
+/* CONNECT BOX */
+.connect-hero{text-align:center;padding:2.5rem 1rem}
+.connect-hero h2{font-family:var(--mono);font-size:1rem;color:var(--accent);margin-bottom:.5rem;letter-spacing:.08em}
+.connect-hero p{font-size:.9rem;color:var(--muted);margin-bottom:1.5rem}
+.connect-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;align-items:flex-end;max-width:560px;margin:0 auto}
+.connect-row .ff{flex:1;min-width:200px}
+.connect-row .btn{margin-top:1.45rem}
+
+/* DISCOVERY TABLE */
+.disc-bar{display:flex;align-items:center;gap:.75rem;margin-bottom:.85rem;flex-wrap:wrap}
+.disc-count{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.sel-all-row{display:flex;gap:.5rem;align-items:center;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:1rem;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:2px}
+.progress-fill.spin{animation:prog 1.5s ease-in-out infinite}
+@keyframes prog{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
+
+/* TABLES */
+.tscroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-thead th{font-family:var(--mono);font-size:.62rem;color:var(--muted);text-transform:uppercase;
-  letter-spacing:.09em;padding:.45rem .9rem;text-align:left;border-bottom:1px solid var(--border)}
+thead th{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.09em;padding:.42rem .85rem;text-align:left;border-bottom:1px solid var(--border)}
 tbody tr{border-bottom:1px solid rgba(30,45,69,.4);transition:background .15s}
 tbody tr:hover{background:rgba(0,212,255,.025)}
-td{padding:.55rem .9rem;font-size:.83rem}
-.tc{font-family:var(--mono);color:var(--accent);font-size:.77rem}
+td{padding:.5rem .85rem;font-size:.82rem;vertical-align:middle}
+.tc{font-family:var(--mono);color:var(--accent);font-size:.76rem}
 .tv{font-family:var(--mono);font-weight:600}
 .tv.n{color:var(--text)}.tv.bt{color:var(--green)}.tv.bf{color:var(--muted)}
-.tt{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
-.tg{font-family:var(--mono);font-size:.67rem;padding:.12rem .45rem;
+.tt{font-family:var(--mono);font-size:.67rem;color:var(--muted)}
+.tg{font-family:var(--mono);font-size:.65rem;padding:.1rem .4rem;
   border:1px solid var(--border);border-radius:2px;color:var(--muted);display:inline-block}
-.tm{font-family:var(--mono);font-size:.67rem;color:var(--muted)}
-.te{font-family:var(--mono);font-size:.67rem;color:var(--red)}
-.tok{font-family:var(--mono);font-size:.67rem;color:var(--green)}
+.tm{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
+.tok{font-family:var(--mono);font-size:.66rem;color:var(--green)}
+.terr{font-family:var(--mono);font-size:.66rem;color:var(--red)}
 .flash{animation:fl .4s ease}
 @keyframes fl{0%{background:rgba(0,212,255,.14)}100%{background:transparent}}
-.addsec{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)}
-.addgrid{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:.7rem;align-items:end}
-@media(max-width:750px){.addgrid{grid-template-columns:1fr 1fr}}
+input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:.6rem;margin-bottom:.85rem;flex-wrap:wrap;align-items:center}
+.fi{background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:.78rem;padding:.33rem .6rem;border-radius:2px;
+  outline:none;flex:1;min-width:150px}
+.fi:focus{border-color:var(--accent)}
+.gpill{padding:.2rem .55rem;border-radius:2px;font-family:var(--mono);font-size:.67rem;
+  cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
+.gpill.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.07)}
+
+/* UA ENDPOINT DISPLAY */
+.ep-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:2px;
+  padding:.65rem .85rem;font-family:var(--mono);font-size:.82rem;color:var(--green);
+  word-break:break-all;margin-top:.35rem}
+.ep-hint{font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-top:.35rem}
+
+/* LOG */
 .logbox{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:2px;
-  height:160px;overflow-y:auto;font-family:var(--mono);font-size:.72rem;padding:.65rem;color:var(--muted)}
+  height:160px;overflow-y:auto;font-family:var(--mono);font-size:.71rem;padding:.6rem;color:var(--muted)}
 .ll.i{color:var(--text)}.ll.w{color:var(--warn)}.ll.e{color:var(--red)}.ll.o{color:var(--green)}
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ADD TAG SECTION */
+.addsec{margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border)}
+.addgrid{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:.65rem;align-items:end}
+@media(max-width:750px){.addgrid{grid-template-columns:1fr 1fr}}
+
+/* INFO ROWS */
+.irow{margin-bottom:.85rem}
+.ilbl{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:.22rem}
+.ival{font-family:var(--mono);font-size:.8rem;color:var(--green);word-break:break-all}
+.ival.dim{color:var(--muted)}
 </style>
 </head>
 <body>
+
 <header>
   <div class="logo">CIP <b>→</b> OPC·UA // GATEWAY</div>
   <div class="badges">
@@ -100,71 +162,83 @@ td{padding:.55rem .9rem;font-size:.83rem}
     <div class="badge"><div class="dot ok"></div><span>OPC-UA: UP</span></div>
   </div>
 </header>
-<main>
+
+<nav>
+  <button class="tab on" onclick="showTab('setup')">① Setup</button>
+  <button class="tab" onclick="showTab('live')">② Live Tags</button>
+  <button class="tab" onclick="showTab('opcua')">③ OPC-UA</button>
+  <button class="tab" onclick="showTab('log')">④ Log</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 1: SETUP
+═══════════════════════════════════════════════════ -->
+<div class="page on" id="tab-setup">
+
+  <!-- Step 1: Connect to PLC -->
+  <div class="card">
+    <div class="ch"><div class="ct">Step 1 — Connect to PLC</div><div id="step1-status" style="font-family:var(--mono);font-size:.68rem;color:var(--muted)"></div></div>
+    <div class="cb">
+      <div class="connect-hero" id="connect-hero">
+        <h2>ENTER YOUR PLC IP ADDRESS</h2>
+        <p>The gateway will connect and discover all available tags automatically.</p>
+        <div class="connect-row">
+          <div class="ff"><label>PLC IP Address</label><input id="setup-ip" placeholder="192.168.1.10" onkeydown="if(event.key==='Enter')startDiscover()"></div>
+          <div class="ff"><label>Poll Interval (ms)</label><input id="setup-poll" type="number" value="1000" min="100" max="60000"></div>
+          <button class="btn g" id="discbtn" onclick="startDiscover()">Discover Tags</button>
+        </div>
+        <div class="msg ok" id="disc-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Review discovered tags -->
+  <div class="card" id="disc-card" style="display:none">
+    <div class="ch">
+      <div class="ct">Step 2 — Select Tags to Bridge</div>
+      <div class="disc-count" id="disc-count"></div>
+    </div>
+    <div class="cb">
+      <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+      <div id="disc-content">
+        <div style="font-family:var(--mono);font-size:.8rem;color:var(--muted);padding:1rem 0">Scanning PLC tag database...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 2: LIVE TAGS
+═══════════════════════════════════════════════════ -->
+<div class="page" id="tab-live">
   <div class="stats">
-    <div class="stat"><div class="slabel">Polls</div><div class="sval" id="s-polls">—</div></div>
-    <div class="stat"><div class="slabel">Interval</div><div class="sval" id="s-int">—</div></div>
-    <div class="stat"><div class="slabel">Tags</div><div class="sval g" id="s-tags">—</div></div>
-    <div class="stat"><div class="slabel">Errors</div><div class="sval" id="s-err">—</div></div>
+    <div class="stat"><div class="slbl">Polls</div><div class="sval" id="s-polls">—</div></div>
+    <div class="stat"><div class="slbl">Interval</div><div class="sval" id="s-int">—</div></div>
+    <div class="stat"><div class="slbl">Active Tags</div><div class="sval g" id="s-tags">—</div></div>
+    <div class="stat"><div class="slbl">Errors</div><div class="sval" id="s-err">—</div></div>
   </div>
 
-  <div class="row2">
-    <div class="panel">
-      <div class="ph"><div class="pt">⚙ PLC Configuration</div></div>
-      <div class="pb">
-        <div class="fg">
-          <div class="ff"><label>PLC IP Address</label><input id="c-ip" placeholder="192.168.1.10"></div>
-          <div class="ff"><label>Poll Interval (ms)</label><input id="c-poll" type="number" min="100" max="60000" placeholder="1000"></div>
-          <div class="ff full"><label>OPC-UA Endpoint</label><input id="c-ep" placeholder="opc.tcp://0.0.0.0:4840/gateway"></div>
-          <div class="ff full"><label>OPC-UA Namespace</label><input id="c-ns" placeholder="urn:cip-opcua-gateway"></div>
-        </div>
-        <div class="brow">
-          <button class="btn" onclick="saveConfig()">Save &amp; Restart</button>
-          <button class="btn r" onclick="restartGw()">Force Restart</button>
-        </div>
-        <div class="msg" id="cfgmsg"></div>
-      </div>
+  <div class="card">
+    <div class="ch">
+      <div class="ct">⬡ Live Tag Values</div>
+      <div style="font-family:var(--mono);font-size:.67rem;color:var(--muted)" id="tagcount">0 tags</div>
     </div>
-
-    <div class="panel">
-      <div class="ph"><div class="pt">◈ OPC-UA Info</div></div>
-      <div class="pb">
-        <div class="info-row"><div class="ilabel">Endpoint</div><div class="ival" id="i-ep">—</div></div>
-        <div class="info-row"><div class="ilabel">Namespace</div><div class="ival dim" id="i-ns">—</div></div>
-        <div class="info-row">
-          <div class="ilabel">Node Path Pattern</div>
-          <div class="ival dim">Objects / PLC / {group} / {tag}</div>
-          <div style="font-family:var(--mono);font-size:.75rem;color:var(--text);margin-top:.2rem">
-            e.g. <span style="color:var(--accent)">ns=2;s=Conveyor/Motor_Speed</span>
-          </div>
-        </div>
-        <div class="info-row"><div class="ilabel">Last Poll</div><div class="ival dim" id="i-poll">—</div></div>
-        <div class="info-row"><div class="ilabel">Last Error</div><div id="i-err" style="font-family:var(--mono);font-size:.75rem;color:var(--muted)">None</div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-bottom:1.5rem">
-    <div class="ph">
-      <div class="pt">⬡ Live Tag Values</div>
-      <div style="font-family:var(--mono);font-size:.68rem;color:var(--muted)" id="tagcount">0 tags</div>
-    </div>
-    <div class="pb">
+    <div class="cb">
       <div class="toolbar">
-        <input class="fi" id="tfilter" placeholder="Filter tags…" oninput="renderTags()">
+        <input class="fi" id="tfilter" placeholder="Filter tags…" oninput="renderLiveTags()">
         <div id="gpills" style="display:flex;gap:.4rem;flex-wrap:wrap"></div>
       </div>
-      <div style="overflow-x:auto">
+      <div class="tscroll">
         <table>
           <thead><tr>
             <th>CIP Tag</th><th>Name</th><th>Value</th><th>Type</th>
             <th>Group</th><th>Last Update</th><th>Status</th><th></th>
           </tr></thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="livebody"></tbody>
         </table>
       </div>
       <div class="addsec">
-        <div class="pt" style="margin-bottom:.7rem">+ Add Tag</div>
+        <div class="ct" style="margin-bottom:.7rem">+ Add Tag Manually</div>
         <div class="addgrid">
           <div class="ff"><label>CIP Tag</label><input id="n-cip" placeholder="Motor_Speed"></div>
           <div class="ff"><label>Display Name</label><input id="n-name" placeholder="Motor Speed"></div>
@@ -178,42 +252,153 @@ td{padding:.55rem .9rem;font-size:.83rem}
           <div class="ff"><label>Description</label><input id="n-desc" placeholder="Optional"></div>
           <div><button class="btn" style="margin-top:1.3rem" onclick="addTag()">Add</button></div>
         </div>
+        <div class="msg ok" id="addmsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 3: OPC-UA
+═══════════════════════════════════════════════════ -->
+<div class="page" id="tab-opcua">
+  <div class="card">
+    <div class="ch"><div class="ct">OPC-UA Server Endpoint</div></div>
+    <div class="cb">
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">
+        The OPC-UA server listens on all network interfaces. Point your analytics tool or OPC-UA client at the address below.
+        The server IP is the IP of the machine running this container.
+      </p>
+      <div class="fg">
+        <div>
+          <div class="ilbl">Current Endpoint (copy this into your OPC-UA client)</div>
+          <div class="ep-box" id="ua-ep-display">—</div>
+          <div class="ep-hint">Replace the IP with your server's actual IP if needed</div>
+        </div>
+        <div>
+          <div class="ilbl">Namespace URI</div>
+          <div class="ep-box" id="ua-ns-display" style="color:var(--muted)">—</div>
+          <div class="ep-hint">Used by some clients for namespace lookup</div>
+        </div>
+      </div>
+      <div style="margin-top:1.25rem">
+        <div class="ilbl">Node Address Pattern</div>
+        <div style="font-family:var(--mono);font-size:.8rem;color:var(--text);margin-top:.3rem">
+          <span style="color:var(--muted)">Objects</span> / 
+          <span style="color:var(--muted)">PLC</span> / 
+          <span style="color:var(--accent)">scan_group</span> / 
+          <span style="color:var(--green)">tag_name</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:.76rem;color:var(--muted);margin-top:.3rem">
+          Example: <span style="color:var(--accent)">ns=2;s=Conveyor/Motor_Speed</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="panel">
-    <div class="ph">
-      <div class="pt">▸ Activity Log</div>
+  <div class="card">
+    <div class="ch"><div class="ct">OPC-UA Server Settings</div></div>
+    <div class="cb">
+      <div class="fg">
+        <div class="ff">
+          <label>Endpoint URL (what to bind to)</label>
+          <input id="cfg-ep" placeholder="opc.tcp://0.0.0.0:4840/gateway">
+          <div style="font-family:var(--mono);font-size:.63rem;color:var(--muted);margin-top:.25rem">Use 0.0.0.0 to listen on all interfaces</div>
+        </div>
+        <div class="ff">
+          <label>Namespace URI</label>
+          <input id="cfg-ns" placeholder="urn:cip-opcua-gateway">
+        </div>
+      </div>
+      <div class="brow">
+        <button class="btn" onclick="saveUAConfig()">Save &amp; Restart</button>
+      </div>
+      <div class="msg ok" id="uamsg"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><div class="ct">Compatible Client Tools</div></div>
+    <div class="cb">
+      <div class="fg3" style="font-size:.85rem;gap:1.25rem">
+        <div>
+          <div style="font-family:var(--mono);color:var(--accent);font-size:.75rem;margin-bottom:.4rem">GRAFANA</div>
+          <div style="color:var(--muted)">Install the <em>grafana-opcua-datasource</em> plugin, add a new data source pointing to the endpoint above.</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);color:var(--accent);font-size:.75rem;margin-bottom:.4rem">PYTHON / PANDAS</div>
+          <div style="color:var(--muted)"><code style="font-family:var(--mono);font-size:.78rem;color:var(--text)">pip install opcua-asyncio</code><br>Then connect to the endpoint URL above.</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);color:var(--accent);font-size:.75rem;margin-bottom:.4rem">UA EXPERT (FREE)</div>
+          <div style="color:var(--muted)">Unified Automation's free desktop OPC-UA client. Great for browsing the tag tree and verifying values.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TAB 4: LOG
+═══════════════════════════════════════════════════ -->
+<div class="page" id="tab-log">
+  <div class="stats">
+    <div class="stat"><div class="slbl">PLC Address</div><div class="sval" style="font-size:1rem" id="l-ip">—</div></div>
+    <div class="stat"><div class="slbl">Last Poll</div><div class="sval" style="font-size:1rem" id="l-poll">—</div></div>
+    <div class="stat"><div class="slbl">Poll Count</div><div class="sval" id="l-count">—</div></div>
+    <div class="stat"><div class="slbl">Last Error</div><div class="sval r" style="font-size:.75rem;margin-top:.35rem;line-height:1.3" id="l-err">—</div></div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <div class="ct">▸ Activity Log</div>
       <button class="btn sm" onclick="logs=[];renderLog()">Clear</button>
     </div>
     <div style="padding:.65rem"><div class="logbox" id="logbox"></div></div>
   </div>
-</main>
+</div>
 
 <script>
-let tags={}, activeGrp='ALL', prev={}, logs=[];
+// ─── State ───────────────────────────────────────────────────────
+let liveTags={}, activeGrp='ALL', prev={}, logs=[];
+let discoveredAll=[], discPollTimer=null;
 
+// ─── Tabs ─────────────────────────────────────────────────────────
+function showTab(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  const tabs={setup:'①',live:'②',opcua:'③',log:'④'};
+  document.querySelectorAll('.tab').forEach(t=>{
+    if(t.textContent.startsWith(tabs[id]))t.classList.add('on');
+  });
+}
+
+// ─── Logging ──────────────────────────────────────────────────────
 function lg(msg,t='i'){
   const ts=new Date().toTimeString().slice(0,8);
   logs.push({ts,msg,t});
-  if(logs.length>200)logs.shift();
+  if(logs.length>300)logs.shift();
   renderLog();
 }
 function renderLog(){
   const b=document.getElementById('logbox');
-  b.innerHTML=logs.slice(-80).map(l=>`<div class="ll ${l.t}">[${l.ts}] ${l.msg}</div>`).join('');
+  if(!b)return;
+  b.innerHTML=logs.slice(-100).map(l=>`<div class="ll ${l.t}">[${l.ts}] ${l.msg}</div>`).join('');
   b.scrollTop=b.scrollHeight;
 }
 
-async function poll(){
+// ─── State polling ────────────────────────────────────────────────
+async function pollState(){
   try{
     const d=await fetch('/api/state').then(r=>r.json());
+    // Header badges
     const dot=document.getElementById('plcdot');
     const txt=document.getElementById('plctxt');
     if(d.plc_connected){dot.className='dot ok';txt.textContent='PLC: '+d.plc_address;}
-    else{dot.className='dot err';txt.textContent='PLC: DISCONNECTED';}
+    else if(d.plc_address){dot.className='dot err';txt.textContent='PLC: DISCONNECTED';}
+    else{dot.className='dot';txt.textContent='PLC: not configured';}
 
+    // Live tab stats
     document.getElementById('s-polls').textContent=d.poll_count??'—';
     document.getElementById('s-int').textContent=d.poll_interval_ms?d.poll_interval_ms+'ms':'—';
     document.getElementById('s-tags').textContent=Object.keys(d.tags||{}).length;
@@ -221,60 +406,233 @@ async function poll(){
     se.textContent=d.error_count??0;
     se.className='sval '+(d.error_count>0?'r':'g');
 
-    document.getElementById('i-ep').textContent=d.opcua_endpoint||'—';
-    document.getElementById('i-poll').textContent=d.last_poll?new Date(d.last_poll).toLocaleTimeString():'—';
-    const ie=document.getElementById('i-err');
-    ie.textContent=d.last_error||'None';
-    ie.style.color=d.last_error?'var(--red)':'var(--muted)';
+    // Log tab stats
+    document.getElementById('l-ip').textContent=d.plc_address||'—';
+    document.getElementById('l-poll').textContent=d.last_poll?new Date(d.last_poll).toLocaleTimeString():'—';
+    document.getElementById('l-count').textContent=d.poll_count??'—';
+    document.getElementById('l-err').textContent=d.last_error||'None';
 
-    const changed=JSON.stringify(d.tags)!==JSON.stringify(tags);
-    tags=d.tags||{};
-    if(changed)renderTags(); else updateVals(d.tags||{});
+    // OPC-UA tab
+    document.getElementById('ua-ep-display').textContent=d.opcua_endpoint||'—';
 
-    if(!document.activeElement.closest('.fg')){
-      document.getElementById('c-ip').value=d.plc_address||'';
-      document.getElementById('c-poll').value=d.poll_interval_ms||1000;
-      document.getElementById('c-ep').value=d.opcua_endpoint||'';
+    // Setup tab - pre-fill IP if already set
+    if(d.plc_address && !document.getElementById('setup-ip').value){
+      document.getElementById('setup-ip').value=d.plc_address;
     }
+    if(d.poll_interval_ms){
+      const pi=document.getElementById('setup-poll');
+      if(!pi.matches(':focus'))pi.value=d.poll_interval_ms;
+    }
+
+    // Live tags
+    const changed=JSON.stringify(d.tags)!==JSON.stringify(liveTags);
+    liveTags=d.tags||{};
+    if(changed)renderLiveTags(); else updateLiveVals(d.tags||{});
+
   }catch(e){lg('Fetch error: '+e.message,'e');}
 }
 
-async function loadCfg(){
-  const c=await fetch('/api/config').then(r=>r.json());
-  document.getElementById('c-ns').value=c.opcua_namespace||'';
-  document.getElementById('i-ns').textContent=c.opcua_namespace||'—';
+async function loadConfig(){
+  try{
+    const c=await fetch('/api/config').then(r=>r.json());
+    document.getElementById('cfg-ep').value=c.opcua_endpoint||'';
+    document.getElementById('cfg-ns').value=c.opcua_namespace||'';
+    document.getElementById('ua-ns-display').textContent=c.opcua_namespace||'—';
+    if(c.plc_address)document.getElementById('setup-ip').value=c.plc_address;
+  }catch(e){}
 }
 
+// ─── Discovery ────────────────────────────────────────────────────
+async function startDiscover(){
+  const ip=document.getElementById('setup-ip').value.trim();
+  const poll=parseInt(document.getElementById('setup-poll').value)||1000;
+  if(!ip){alert('Enter the PLC IP address first.');return;}
+
+  // Save poll interval
+  await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({poll_interval_ms:poll})});
+
+  document.getElementById('discbtn').disabled=true;
+  document.getElementById('discbtn').textContent='Scanning...';
+  document.getElementById('disc-msg').style.display='none';
+
+  // Show discovery card
+  document.getElementById('disc-card').style.display='block';
+  document.getElementById('disc-count').textContent='Connecting...';
+  document.getElementById('step1-status').textContent='';
+
+  // Start progress animation
+  const prog=document.getElementById('prog');
+  prog.style.width='0%';
+  prog.classList.add('spin');
+
+  try{
+    const r=await fetch('/api/discover',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plc_address:ip})});
+    if(!r.ok){
+      const e=await r.json();
+      throw new Error(e.error||'Discovery failed');
+    }
+    lg('Discovery started on '+ip,'o');
+    // Poll for completion
+    discPollTimer=setInterval(checkDiscovery,1500);
+  }catch(e){
+    prog.classList.remove('spin');
+    document.getElementById('discbtn').disabled=false;
+    document.getElementById('discbtn').textContent='Discover Tags';
+    document.getElementById('disc-count').textContent='Error: '+e.message;
+    lg('Discovery error: '+e.message,'e');
+  }
+}
+
+async function checkDiscovery(){
+  try{
+    const d=await fetch('/api/discover/status').then(r=>r.json());
+    if(d.last_error && !d.running){
+      clearInterval(discPollTimer);
+      document.getElementById('prog').classList.remove('spin');
+      document.getElementById('disc-count').textContent='Failed: '+d.last_error;
+      document.getElementById('discbtn').disabled=false;
+      document.getElementById('discbtn').textContent='Retry';
+      lg('Discovery failed: '+d.last_error,'e');
+      return;
+    }
+    if(!d.running){
+      clearInterval(discPollTimer);
+      discoveredAll=d.tags||[];
+      document.getElementById('prog').classList.remove('spin');
+      document.getElementById('prog').style.width='100%';
+      document.getElementById('disc-count').textContent=discoveredAll.length+' tags found';
+      document.getElementById('discbtn').disabled=false;
+      document.getElementById('discbtn').textContent='Re-scan';
+      document.getElementById('step1-status').textContent='✓ '+discoveredAll.length+' tags discovered';
+      document.getElementById('step1-status').style.color='var(--green)';
+      lg('Discovery complete: '+discoveredAll.length+' tags','o');
+      renderDiscoveredTags(discoveredAll);
+    }else{
+      document.getElementById('disc-count').textContent='Scanning... ('+d.count+' found so far)';
+    }
+  }catch(e){lg('Discovery poll error','e');}
+}
+
+function renderDiscoveredTags(tags){
+  if(!tags||!tags.length){
+    document.getElementById('disc-content').innerHTML=
+      '<div style="font-family:var(--mono);font-size:.8rem;color:var(--muted);padding:1rem 0">No atomic tags found. Controller may have no program-scoped tags, or connection failed.</div>';
+    return;
+  }
+
+  // Group filter pills
+  const groups=[...new Set(tags.map(t=>t.scan_group||'default'))].sort();
+
+  let html=`
+    <div class="disc-bar">
+      <div class="sel-all-row">
+        <input type="checkbox" id="selall" onchange="toggleSelectAll(this.checked)"> 
+        <label for="selall" style="cursor:pointer">Select All</label>
+        <span id="selcount" style="margin-left:.5rem">(0 selected)</span>
+      </div>
+      <input class="fi" id="discfilter" placeholder="Filter…" oninput="filterDisc()" style="max-width:220px">
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap" id="disc-gpills">
+        <button class="gpill on" onclick="setDiscGrp('ALL',this)">ALL</button>
+        ${groups.map(g=>`<button class="gpill" onclick="setDiscGrp('${g}',this)">${g}</button>`).join('')}
+      </div>
+      <button class="btn g" onclick="applySelected()">▶ Apply Selected &amp; Start</button>
+    </div>
+    <div class="tscroll">
+    <table>
+      <thead><tr>
+        <th style="width:36px"></th>
+        <th>CIP Tag Name</th><th>CIP Type</th><th>OPC-UA Type</th><th>Scan Group</th>
+      </tr></thead>
+      <tbody id="disc-tbody">`;
+
+  tags.forEach((t,i)=>{
+    html+=`<tr id="dr-${i}" data-grp="${t.scan_group||'default'}" data-name="${t.cip_tag.toLowerCase()}">
+      <td><input type="checkbox" class="disc-cb" data-i="${i}" onchange="updateSelCount()"></td>
+      <td class="tc">${t.cip_tag}</td>
+      <td class="tt">${t.cip_type||''}</td>
+      <td><span class="tg">${t.ua_type}</span></td>
+      <td><span class="tg">${t.scan_group||'default'}</span></td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('disc-content').innerHTML=html;
+}
+
+let discActiveGrp='ALL';
+function setDiscGrp(g,btn){
+  discActiveGrp=g;
+  document.querySelectorAll('#disc-gpills .gpill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  filterDisc();
+}
+function filterDisc(){
+  const f=(document.getElementById('discfilter')||{value:''}).value.toLowerCase();
+  document.querySelectorAll('#disc-tbody tr').forEach(row=>{
+    const grpMatch=discActiveGrp==='ALL'||row.dataset.grp===discActiveGrp;
+    const txtMatch=!f||row.dataset.name.includes(f);
+    row.style.display=(grpMatch&&txtMatch)?'':'none';
+  });
+  updateSelCount();
+}
+function toggleSelectAll(checked){
+  document.querySelectorAll('.disc-cb').forEach(cb=>{
+    if(cb.closest('tr').style.display!=='none')cb.checked=checked;
+  });
+  updateSelCount();
+}
+function updateSelCount(){
+  const n=document.querySelectorAll('.disc-cb:checked').length;
+  const el=document.getElementById('selcount');
+  if(el)el.textContent='('+n+' selected)';
+}
+async function applySelected(){
+  const checked=[...document.querySelectorAll('.disc-cb:checked')];
+  if(!checked.length){alert('Select at least one tag.');return;}
+  const selected=checked.map(cb=>discoveredAll[parseInt(cb.dataset.i)]);
+  const r=await fetch('/api/discover/apply',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({tags:selected})});
+  if(r.ok){
+    const j=await r.json();
+    lg('Applied '+j.count+' tags — gateway restarting...','o');
+    showTab('live');
+    setTimeout(()=>lg('Gateway restarted with new tags','o'),2500);
+  }else{
+    lg('Apply failed','e');
+  }
+}
+
+// ─── Live Tags ────────────────────────────────────────────────────
+function sk(k){return k.replace(/[^a-zA-Z0-9]/g,'_');}
 function grps(){
   const s=new Set(['ALL']);
-  Object.values(tags).forEach(t=>s.add(t.group||'default'));
+  Object.values(liveTags).forEach(t=>s.add(t.group||'default'));
   return[...s];
 }
-
-function sk(k){return k.replace(/[^a-zA-Z0-9]/g,'_');}
-
-function renderTags(){
+function renderLiveTags(){
   const f=document.getElementById('tfilter').value.toLowerCase();
   const g=grps();
   document.getElementById('gpills').innerHTML=g.map(x=>
     `<button class="gpill ${x===activeGrp?'on':''}" onclick="setGrp('${x}')">${x}</button>`
   ).join('');
-  const entries=Object.entries(tags).filter(([k,t])=>{
+  const entries=Object.entries(liveTags).filter(([k,t])=>{
     const gm=activeGrp==='ALL'||t.group===activeGrp;
     const tm=!f||k.toLowerCase().includes(f)||(t.name||'').toLowerCase().includes(f);
     return gm&&tm;
   });
   document.getElementById('tagcount').textContent=entries.length+' tags';
-  document.getElementById('tbody').innerHTML=entries.map(([k,t])=>{
+  document.getElementById('livebody').innerHTML=entries.map(([k,t])=>{
     const v=t.value;
     let vc='n',vd;
     if(t.ua_type==='Bool'){vc=v?'bt':'bf';vd=v?'● TRUE':'○ FALSE';}
     else vd=(v===null||v===undefined)?'<span style="color:var(--muted)">—</span>':v;
     const ts=t.last_update?new Date(t.last_update).toLocaleTimeString():'—';
-    const st=t.error?`<span class="te">⚠ ${t.error}</span>`:`<span class="tok">✓ OK</span>`;
+    const st=t.error?`<span class="terr">⚠ ${t.error}</span>`:`<span class="tok">✓ OK</span>`;
     return`<tr id="row-${sk(k)}">
-      <td class="tc">${k}</td>
-      <td>${t.name||''}</td>
+      <td class="tc">${k}</td><td>${t.name||''}</td>
       <td class="tv ${vc}" id="v-${sk(k)}">${vd}</td>
       <td class="tt">${t.ua_type}</td>
       <td><span class="tg">${t.group||'default'}</span></td>
@@ -283,10 +641,9 @@ function renderTags(){
       <td><button class="btn sm r" onclick="removeTag('${k}')">✕</button></td>
     </tr>`;
   }).join('');
-  prev=Object.fromEntries(Object.entries(tags).map(([k,t])=>[k,t.value]));
+  prev=Object.fromEntries(Object.entries(liveTags).map(([k,t])=>[k,t.value]));
 }
-
-function updateVals(t){
+function updateLiveVals(t){
   for(const[k,tag]of Object.entries(t)){
     const s=sk(k);
     const ve=document.getElementById('v-'+s);
@@ -300,14 +657,13 @@ function updateVals(t){
       ve.className='tv '+vc;ve.innerHTML=vd;
       const row=document.getElementById('row-'+s);
       if(row){row.classList.remove('flash');void row.offsetWidth;row.classList.add('flash');}
-      lg(`${tag.name||k} → ${vd}`);
+      lg(k+' → '+vd);
     }
     if(te&&tag.last_update)te.textContent=new Date(tag.last_update).toLocaleTimeString();
     prev[k]=v;
   }
 }
-
-function setGrp(g){activeGrp=g;renderTags();}
+function setGrp(g){activeGrp=g;renderLiveTags();}
 
 async function addTag(){
   const cip=document.getElementById('n-cip').value.trim();
@@ -318,41 +674,42 @@ async function addTag(){
   if(!cip||!nm){alert('CIP tag and name required');return;}
   const r=await fetch('/api/tags',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({cip_tag:cip,name:nm,ua_type:tp,scan_group:gr,description:ds})});
-  if(r.ok){lg(`Added: ${cip} (${tp})`,'o');['n-cip','n-name','n-grp','n-desc'].forEach(i=>document.getElementById(i).value='');showMsg('✓ Tag added — restart to activate');}
+  if(r.ok){
+    lg('Added: '+cip+' ('+tp+')','o');
+    ['n-cip','n-name','n-grp','n-desc'].forEach(i=>document.getElementById(i).value='');
+    showMsg('addmsg','✓ Tag added — restart to activate');
+  }
 }
-
 async function removeTag(k){
   if(!confirm('Remove "'+k+'"?'))return;
   const r=await fetch('/api/tags/'+encodeURIComponent(k),{method:'DELETE'});
-  if(r.ok){lg('Removed: '+k,'w');showMsg('Tag removed — restart to activate');}
+  if(r.ok){lg('Removed: '+k,'w');}
 }
 
-async function saveConfig(){
+// ─── OPC-UA Config ────────────────────────────────────────────────
+async function saveUAConfig(){
   const b={
-    plc_address:document.getElementById('c-ip').value.trim(),
-    poll_interval_ms:parseInt(document.getElementById('c-poll').value),
-    opcua_endpoint:document.getElementById('c-ep').value.trim(),
-    opcua_namespace:document.getElementById('c-ns').value.trim(),
+    opcua_endpoint:document.getElementById('cfg-ep').value.trim(),
+    opcua_namespace:document.getElementById('cfg-ns').value.trim(),
   };
   await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
-  lg('Config saved, restarting...','o');
-  showMsg('✓ Saved — restarting...');
   await fetch('/api/restart',{method:'POST'});
+  showMsg('uamsg','✓ Saved — restarting gateway...');
+  lg('OPC-UA config saved, restarting...','o');
 }
 
-async function restartGw(){
-  if(!confirm('Restart gateway?'))return;
-  await fetch('/api/restart',{method:'POST'});
-  lg('Restart requested','w');
-}
-
-function showMsg(m){
-  const e=document.getElementById('cfgmsg');
-  e.textContent=m;e.style.display='block';
+// ─── Helpers ──────────────────────────────────────────────────────
+function showMsg(id,m,type='ok'){
+  const e=document.getElementById(id);
+  if(!e)return;
+  e.textContent=m;e.className='msg '+type;e.style.display='block';
   setTimeout(()=>e.style.display='none',4000);
 }
 
-loadCfg();poll();setInterval(poll,1500);
+// ─── Boot ─────────────────────────────────────────────────────────
+loadConfig();
+pollState();
+setInterval(pollState,1500);
 lg('Dashboard ready','o');
 </script>
 </body>

@@ -2,7 +2,7 @@ IMAGE_NAME := cip-opcua-gateway
 IMAGE_TAG  := latest
 CONFIG_DIR := $(CURDIR)/config
 
-.PHONY: build run stop logs shell
+.PHONY: build run run-bg stop logs shell
 
 build:
 	podman build -t $(IMAGE_NAME):$(IMAGE_TAG) -f Containerfile .
