@@ -9,6 +9,8 @@ them as an OPC-UA server for analytics tools.
 **License:** MIT
 
 ---
+<img src="guipic.png">
+
 
 ## Architecture
 
