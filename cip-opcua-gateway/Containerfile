@@ -1,0 +1,32 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+
+LABEL description="CIP/EtherNet-IP to OPC-UA Gateway with Web UI" \
+      version="2.0.0"
+
+USER root
+
+WORKDIR /app
+
+COPY app/requirements.txt .
+RUN pip install --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+COPY app/gateway.py .
+COPY app/index.html .
+
+RUN mkdir -p /config \
+ && groupadd -g 1500 gateway \
+ && useradd -u 1500 -g gateway -s /sbin/nologin -d /app gateway \
+ && chown -R gateway:gateway /app /config
+
+EXPOSE 4840
+EXPOSE 8088
+
+USER gateway
+
+ENV GATEWAY_CONFIG=/config/tags.json \
+    LOG_LEVEL=INFO \
+    WEB_PORT=8088 \
+    PYTHONUNBUFFERED=1
+
+CMD ["python", "gateway.py"]

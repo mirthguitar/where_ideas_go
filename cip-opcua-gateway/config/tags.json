@@ -1,0 +1,36 @@
+{
+  "plc_address": "192.168.1.10",
+  "opcua_endpoint": "opc.tcp://0.0.0.0:4840/gateway",
+  "opcua_namespace": "urn:cip-opcua-gateway",
+  "poll_interval_ms": 1000,
+  "tags": [
+    {
+      "name": "Motor_Speed",
+      "cip_tag": "Motor_Speed",
+      "ua_type": "Float",
+      "description": "Conveyor motor speed RPM",
+      "scan_group": "Conveyor"
+    },
+    {
+      "name": "Conveyor_Running",
+      "cip_tag": "Conveyor_Running",
+      "ua_type": "Bool",
+      "description": "Conveyor running status",
+      "scan_group": "Conveyor"
+    },
+    {
+      "name": "Tank_Level",
+      "cip_tag": "Tank_Level",
+      "ua_type": "Float",
+      "description": "Tank fill level percent",
+      "scan_group": "Tank"
+    },
+    {
+      "name": "Fault_Code",
+      "cip_tag": "Fault_Code",
+      "ua_type": "Int32",
+      "description": "Active fault code, 0 = no fault",
+      "scan_group": "Alarms"
+    }
+  ]
+}

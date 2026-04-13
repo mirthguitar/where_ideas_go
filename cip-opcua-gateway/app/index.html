@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CIP → OPC-UA Gateway</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e17; --panel:#111827; --border:#1e2d45;
+  --accent:#00d4ff; --green:#00ff9d; --warn:#ffb300; --red:#ff3d5a;
+  --text:#c8d8e8; --muted:#4a6080;
+  --mono:'Share Tech Mono',monospace; --sans:'Barlow',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:56px;
+  border-bottom:1px solid var(--border);background:#111827;position:sticky;top:0;z-index:99}
+.logo{font-family:var(--mono);color:var(--accent);font-size:.95rem;letter-spacing:.04em}
+.logo b{color:var(--green)}
+.badges{display:flex;gap:.75rem}
+.badge{display:flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:.7rem;
+  padding:.25rem .65rem;border:1px solid var(--border);border-radius:2px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite}
+.dot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+main{max-width:1300px;margin:0 auto;padding:1.5rem}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:.9rem 1.1rem}
+.slabel{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.sval{font-family:var(--mono);font-size:1.5rem;color:var(--accent);margin-top:.2rem}
+.sval.g{color:var(--green)}.sval.r{color:var(--red)}.sval.w{color:var(--warn)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+@media(max-width:800px){.stats{grid-template-columns:1fr 1fr}.row2{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:3px}
+.ph{display:flex;align-items:center;justify-content:space-between;
+  padding:.65rem 1.1rem;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.pt{font-family:var(--mono);font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+.pb{padding:1.1rem}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.ff{display:flex;flex-direction:column;gap:.3rem}
+.ff label{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.07em}
+.ff input,.ff select{background:rgba(0,0,0,.35);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:.82rem;padding:.42rem .65rem;border-radius:2px;outline:none;
+  transition:border-color .2s}
+.ff input:focus,.ff select:focus{border-color:var(--accent)}
+.full{grid-column:1/-1}
+.btn{padding:.45rem 1.2rem;background:transparent;border:1px solid var(--accent);color:var(--accent);
+  font-family:var(--mono);font-size:.75rem;cursor:pointer;border-radius:2px;transition:all .2s;margin-top:.85rem}
+.btn:hover{background:var(--accent);color:var(--bg)}
+.btn.r{border-color:var(--red);color:var(--red)}.btn.r:hover{background:var(--red);color:#fff}
+.btn.sm{margin-top:0;padding:.18rem .5rem;font-size:.65rem}
+.brow{display:flex;gap:.65rem;flex-wrap:wrap}
+.msg{font-family:var(--mono);font-size:.72rem;color:var(--green);margin-top:.5rem;display:none}
+.info-row{margin-bottom:.9rem}
+.ilabel{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem}
+.ival{font-family:var(--mono);font-size:.82rem;color:var(--green);word-break:break-all}
+.ival.dim{color:var(--muted)}
+.toolbar{display:flex;gap:.65rem;margin-bottom:.9rem;flex-wrap:wrap;align-items:center}
+.fi{background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:.78rem;padding:.35rem .65rem;border-radius:2px;
+  outline:none;flex:1;min-width:160px}
+.fi:focus{border-color:var(--accent)}
+.gpill{padding:.22rem .6rem;border-radius:2px;font-family:var(--mono);font-size:.68rem;
+  cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
+.gpill.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.07)}
+table{width:100%;border-collapse:collapse}
+thead th{font-family:var(--mono);font-size:.62rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.09em;padding:.45rem .9rem;text-align:left;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid rgba(30,45,69,.4);transition:background .15s}
+tbody tr:hover{background:rgba(0,212,255,.025)}
+td{padding:.55rem .9rem;font-size:.83rem}
+.tc{font-family:var(--mono);color:var(--accent);font-size:.77rem}
+.tv{font-family:var(--mono);font-weight:600}
+.tv.n{color:var(--text)}.tv.bt{color:var(--green)}.tv.bf{color:var(--muted)}
+.tt{font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.tg{font-family:var(--mono);font-size:.67rem;padding:.12rem .45rem;
+  border:1px solid var(--border);border-radius:2px;color:var(--muted);display:inline-block}
+.tm{font-family:var(--mono);font-size:.67rem;color:var(--muted)}
+.te{font-family:var(--mono);font-size:.67rem;color:var(--red)}
+.tok{font-family:var(--mono);font-size:.67rem;color:var(--green)}
+.flash{animation:fl .4s ease}
+@keyframes fl{0%{background:rgba(0,212,255,.14)}100%{background:transparent}}
+.addsec{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--border)}
+.addgrid{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:.7rem;align-items:end}
+@media(max-width:750px){.addgrid{grid-template-columns:1fr 1fr}}
+.logbox{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:2px;
+  height:160px;overflow-y:auto;font-family:var(--mono);font-size:.72rem;padding:.65rem;color:var(--muted)}
+.ll.i{color:var(--text)}.ll.w{color:var(--warn)}.ll.e{color:var(--red)}.ll.o{color:var(--green)}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">CIP <b>→</b> OPC·UA // GATEWAY</div>
+  <div class="badges">
+    <div class="badge"><div class="dot" id="plcdot"></div><span id="plctxt">PLC: —</span></div>
+    <div class="badge"><div class="dot ok"></div><span>OPC-UA: UP</span></div>
+  </div>
+</header>
+<main>
+  <div class="stats">
+    <div class="stat"><div class="slabel">Polls</div><div class="sval" id="s-polls">—</div></div>
+    <div class="stat"><div class="slabel">Interval</div><div class="sval" id="s-int">—</div></div>
+    <div class="stat"><div class="slabel">Tags</div><div class="sval g" id="s-tags">—</div></div>
+    <div class="stat"><div class="slabel">Errors</div><div class="sval" id="s-err">—</div></div>
+  </div>
+
+  <div class="row2">
+    <div class="panel">
+      <div class="ph"><div class="pt">⚙ PLC Configuration</div></div>
+      <div class="pb">
+        <div class="fg">
+          <div class="ff"><label>PLC IP Address</label><input id="c-ip" placeholder="192.168.1.10"></div>
+          <div class="ff"><label>Poll Interval (ms)</label><input id="c-poll" type="number" min="100" max="60000" placeholder="1000"></div>
+          <div class="ff full"><label>OPC-UA Endpoint</label><input id="c-ep" placeholder="opc.tcp://0.0.0.0:4840/gateway"></div>
+          <div class="ff full"><label>OPC-UA Namespace</label><input id="c-ns" placeholder="urn:cip-opcua-gateway"></div>
+        </div>
+        <div class="brow">
+          <button class="btn" onclick="saveConfig()">Save &amp; Restart</button>
+          <button class="btn r" onclick="restartGw()">Force Restart</button>
+        </div>
+        <div class="msg" id="cfgmsg"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><div class="pt">◈ OPC-UA Info</div></div>
+      <div class="pb">
+        <div class="info-row"><div class="ilabel">Endpoint</div><div class="ival" id="i-ep">—</div></div>
+        <div class="info-row"><div class="ilabel">Namespace</div><div class="ival dim" id="i-ns">—</div></div>
+        <div class="info-row">
+          <div class="ilabel">Node Path Pattern</div>
+          <div class="ival dim">Objects / PLC / {group} / {tag}</div>
+          <div style="font-family:var(--mono);font-size:.75rem;color:var(--text);margin-top:.2rem">
+            e.g. <span style="color:var(--accent)">ns=2;s=Conveyor/Motor_Speed</span>
+          </div>
+        </div>
+        <div class="info-row"><div class="ilabel">Last Poll</div><div class="ival dim" id="i-poll">—</div></div>
+        <div class="info-row"><div class="ilabel">Last Error</div><div id="i-err" style="font-family:var(--mono);font-size:.75rem;color:var(--muted)">None</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:1.5rem">
+    <div class="ph">
+      <div class="pt">⬡ Live Tag Values</div>
+      <div style="font-family:var(--mono);font-size:.68rem;color:var(--muted)" id="tagcount">0 tags</div>
+    </div>
+    <div class="pb">
+      <div class="toolbar">
+        <input class="fi" id="tfilter" placeholder="Filter tags…" oninput="renderTags()">
+        <div id="gpills" style="display:flex;gap:.4rem;flex-wrap:wrap"></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>CIP Tag</th><th>Name</th><th>Value</th><th>Type</th>
+            <th>Group</th><th>Last Update</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="addsec">
+        <div class="pt" style="margin-bottom:.7rem">+ Add Tag</div>
+        <div class="addgrid">
+          <div class="ff"><label>CIP Tag</label><input id="n-cip" placeholder="Motor_Speed"></div>
+          <div class="ff"><label>Display Name</label><input id="n-name" placeholder="Motor Speed"></div>
+          <div class="ff"><label>UA Type</label>
+            <select id="n-type">
+              <option>Float</option><option>Double</option><option>Int32</option>
+              <option>Int16</option><option>UInt32</option><option>Bool</option><option>String</option>
+            </select>
+          </div>
+          <div class="ff"><label>Group</label><input id="n-grp" placeholder="default"></div>
+          <div class="ff"><label>Description</label><input id="n-desc" placeholder="Optional"></div>
+          <div><button class="btn" style="margin-top:1.3rem" onclick="addTag()">Add</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph">
+      <div class="pt">▸ Activity Log</div>
+      <button class="btn sm" onclick="logs=[];renderLog()">Clear</button>
+    </div>
+    <div style="padding:.65rem"><div class="logbox" id="logbox"></div></div>
+  </div>
+</main>
+
+<script>
+let tags={}, activeGrp='ALL', prev={}, logs=[];
+
+function lg(msg,t='i'){
+  const ts=new Date().toTimeString().slice(0,8);
+  logs.push({ts,msg,t});
+  if(logs.length>200)logs.shift();
+  renderLog();
+}
+function renderLog(){
+  const b=document.getElementById('logbox');
+  b.innerHTML=logs.slice(-80).map(l=>`<div class="ll ${l.t}">[${l.ts}] ${l.msg}</div>`).join('');
+  b.scrollTop=b.scrollHeight;
+}
+
+async function poll(){
+  try{
+    const d=await fetch('/api/state').then(r=>r.json());
+    const dot=document.getElementById('plcdot');
+    const txt=document.getElementById('plctxt');
+    if(d.plc_connected){dot.className='dot ok';txt.textContent='PLC: '+d.plc_address;}
+    else{dot.className='dot err';txt.textContent='PLC: DISCONNECTED';}
+
+    document.getElementById('s-polls').textContent=d.poll_count??'—';
+    document.getElementById('s-int').textContent=d.poll_interval_ms?d.poll_interval_ms+'ms':'—';
+    document.getElementById('s-tags').textContent=Object.keys(d.tags||{}).length;
+    const se=document.getElementById('s-err');
+    se.textContent=d.error_count??0;
+    se.className='sval '+(d.error_count>0?'r':'g');
+
+    document.getElementById('i-ep').textContent=d.opcua_endpoint||'—';
+    document.getElementById('i-poll').textContent=d.last_poll?new Date(d.last_poll).toLocaleTimeString():'—';
+    const ie=document.getElementById('i-err');
+    ie.textContent=d.last_error||'None';
+    ie.style.color=d.last_error?'var(--red)':'var(--muted)';
+
+    const changed=JSON.stringify(d.tags)!==JSON.stringify(tags);
+    tags=d.tags||{};
+    if(changed)renderTags(); else updateVals(d.tags||{});
+
+    if(!document.activeElement.closest('.fg')){
+      document.getElementById('c-ip').value=d.plc_address||'';
+      document.getElementById('c-poll').value=d.poll_interval_ms||1000;
+      document.getElementById('c-ep').value=d.opcua_endpoint||'';
+    }
+  }catch(e){lg('Fetch error: '+e.message,'e');}
+}
+
+async function loadCfg(){
+  const c=await fetch('/api/config').then(r=>r.json());
+  document.getElementById('c-ns').value=c.opcua_namespace||'';
+  document.getElementById('i-ns').textContent=c.opcua_namespace||'—';
+}
+
+function grps(){
+  const s=new Set(['ALL']);
+  Object.values(tags).forEach(t=>s.add(t.group||'default'));
+  return[...s];
+}
+
+function sk(k){return k.replace(/[^a-zA-Z0-9]/g,'_');}
+
+function renderTags(){
+  const f=document.getElementById('tfilter').value.toLowerCase();
+  const g=grps();
+  document.getElementById('gpills').innerHTML=g.map(x=>
+    `<button class="gpill ${x===activeGrp?'on':''}" onclick="setGrp('${x}')">${x}</button>`
+  ).join('');
+  const entries=Object.entries(tags).filter(([k,t])=>{
+    const gm=activeGrp==='ALL'||t.group===activeGrp;
+    const tm=!f||k.toLowerCase().includes(f)||(t.name||'').toLowerCase().includes(f);
+    return gm&&tm;
+  });
+  document.getElementById('tagcount').textContent=entries.length+' tags';
+  document.getElementById('tbody').innerHTML=entries.map(([k,t])=>{
+    const v=t.value;
+    let vc='n',vd;
+    if(t.ua_type==='Bool'){vc=v?'bt':'bf';vd=v?'● TRUE':'○ FALSE';}
+    else vd=(v===null||v===undefined)?'<span style="color:var(--muted)">—</span>':v;
+    const ts=t.last_update?new Date(t.last_update).toLocaleTimeString():'—';
+    const st=t.error?`<span class="te">⚠ ${t.error}</span>`:`<span class="tok">✓ OK</span>`;
+    return`<tr id="row-${sk(k)}">
+      <td class="tc">${k}</td>
+      <td>${t.name||''}</td>
+      <td class="tv ${vc}" id="v-${sk(k)}">${vd}</td>
+      <td class="tt">${t.ua_type}</td>
+      <td><span class="tg">${t.group||'default'}</span></td>
+      <td class="tm" id="t-${sk(k)}">${ts}</td>
+      <td>${st}</td>
+      <td><button class="btn sm r" onclick="removeTag('${k}')">✕</button></td>
+    </tr>`;
+  }).join('');
+  prev=Object.fromEntries(Object.entries(tags).map(([k,t])=>[k,t.value]));
+}
+
+function updateVals(t){
+  for(const[k,tag]of Object.entries(t)){
+    const s=sk(k);
+    const ve=document.getElementById('v-'+s);
+    const te=document.getElementById('t-'+s);
+    if(!ve)continue;
+    const v=tag.value;
+    let vd,vc;
+    if(tag.ua_type==='Bool'){vc=v?'bt':'bf';vd=v?'● TRUE':'○ FALSE';}
+    else{vc='n';vd=(v===null||v===undefined)?'—':v;}
+    if(prev[k]!==v){
+      ve.className='tv '+vc;ve.innerHTML=vd;
+      const row=document.getElementById('row-'+s);
+      if(row){row.classList.remove('flash');void row.offsetWidth;row.classList.add('flash');}
+      lg(`${tag.name||k} → ${vd}`);
+    }
+    if(te&&tag.last_update)te.textContent=new Date(tag.last_update).toLocaleTimeString();
+    prev[k]=v;
+  }
+}
+
+function setGrp(g){activeGrp=g;renderTags();}
+
+async function addTag(){
+  const cip=document.getElementById('n-cip').value.trim();
+  const nm=document.getElementById('n-name').value.trim();
+  const tp=document.getElementById('n-type').value;
+  const gr=document.getElementById('n-grp').value.trim()||'default';
+  const ds=document.getElementById('n-desc').value.trim();
+  if(!cip||!nm){alert('CIP tag and name required');return;}
+  const r=await fetch('/api/tags',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({cip_tag:cip,name:nm,ua_type:tp,scan_group:gr,description:ds})});
+  if(r.ok){lg(`Added: ${cip} (${tp})`,'o');['n-cip','n-name','n-grp','n-desc'].forEach(i=>document.getElementById(i).value='');showMsg('✓ Tag added — restart to activate');}
+}
+
+async function removeTag(k){
+  if(!confirm('Remove "'+k+'"?'))return;
+  const r=await fetch('/api/tags/'+encodeURIComponent(k),{method:'DELETE'});
+  if(r.ok){lg('Removed: '+k,'w');showMsg('Tag removed — restart to activate');}
+}
+
+async function saveConfig(){
+  const b={
+    plc_address:document.getElementById('c-ip').value.trim(),
+    poll_interval_ms:parseInt(document.getElementById('c-poll').value),
+    opcua_endpoint:document.getElementById('c-ep').value.trim(),
+    opcua_namespace:document.getElementById('c-ns').value.trim(),
+  };
+  await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+  lg('Config saved, restarting...','o');
+  showMsg('✓ Saved — restarting...');
+  await fetch('/api/restart',{method:'POST'});
+}
+
+async function restartGw(){
+  if(!confirm('Restart gateway?'))return;
+  await fetch('/api/restart',{method:'POST'});
+  lg('Restart requested','w');
+}
+
+function showMsg(m){
+  const e=document.getElementById('cfgmsg');
+  e.textContent=m;e.style.display='block';
+  setTimeout(()=>e.style.display='none',4000);
+}
+
+loadCfg();poll();setInterval(poll,1500);
+lg('Dashboard ready','o');
+</script>
+</body>
+</html>
