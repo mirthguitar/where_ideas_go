@@ -4,7 +4,7 @@ CIP/EtherNet-IP to OPC-UA Gateway with Web UI
 - Web UI for full configuration
 - Serves OPC-UA on port 4840, Web UI on port 8088
 """
-import asyncio, logging, os, signal, json, threading
+import asyncio, logging, os, signal, json, threading, socket
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -19,6 +19,23 @@ logging.basicConfig(
 )
 log = logging.getLogger("cip_opcua_gateway")
 logging.getLogger("asyncua.server.address_space").setLevel(logging.WARNING)
+
+def _host_ip() -> str:
+    """Return the primary non-loopback host IP."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.254.254.254", 1))
+        return s.getsockname()[0]
+    except Exception:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except Exception:
+            return "127.0.0.1"
+    finally:
+        try: s.close()
+        except Exception: pass
+
+HOST_IP = _host_ip()
 
 state_lock = threading.Lock()
 gateway_state = {
@@ -99,10 +116,13 @@ def load_config(path=CONFIG_PATH):
         for t in raw.get("tags", [])
         if not t.get("_comment") and "cip_tag" in t
     ]
+    raw_endpoint = raw.get("opcua_endpoint", "opc.tcp://0.0.0.0:4840/gateway")
+    # Replace 0.0.0.0 with the real host IP so OPC-UA clients know where to connect
+    endpoint = raw_endpoint.replace("0.0.0.0", HOST_IP)
     return GatewayConfig(
         plc_address=raw.get("plc_address", ""),
         plc_path=raw.get("plc_path", "1,0"),
-        opcua_endpoint=raw.get("opcua_endpoint", "opc.tcp://0.0.0.0:4840/gateway"),
+        opcua_endpoint=endpoint,
         opcua_namespace=raw.get("opcua_namespace", "urn:cip-opcua-gateway"),
         poll_interval_ms=raw.get("poll_interval_ms", 1000),
         tags=tags,
@@ -128,42 +148,95 @@ def cast_value(raw, ua_type):
 # Tag Discovery (runs in a thread so it doesn't block the event loop)
 # ---------------------------------------------------------------------------
 def discover_tags_thread(plc_address: str):
-    """Connect to PLC and enumerate all controller-scoped tags."""
+    """Connect to PLC and enumerate tags: controller-scoped atomics, struct
+    members, and all program-scoped tags."""
     with state_lock:
         gateway_state["discovery_running"] = True
         gateway_state["discovered_tags"] = []
         gateway_state["last_error"] = None
 
     log.info("Discovering tags from %s ...", plc_address)
+
+    def _tag_entry(tag_name, cip_type, source="controller"):
+        ua_type = CIP_TO_UA.get(cip_type.upper())
+        if not ua_type:
+            return None
+        parts = tag_name.replace("Program:", "").split("_")
+        grp = parts[0] if len(parts) > 1 else source
+        return {
+            "cip_tag":     tag_name,
+            "name":        tag_name,
+            "cip_type":    cip_type.upper(),
+            "ua_type":     ua_type,
+            "scan_group":  grp,
+            "description": f"{cip_type.upper()} ({source})",
+        }
+
+    def _collect(raw_tags, source, discovered):
+        """Walk a raw tag list and append atomic entries, expanding struct members."""
+        for t in raw_tags:
+            tag_name      = t.get('tag_name', '')    if isinstance(t, dict) else t.tag_name
+            tag_type      = t.get('tag_type', '')    if isinstance(t, dict) else getattr(t, 'tag_type', '')
+            data_type     = t.get('data_type', {})   if isinstance(t, dict) else getattr(t, 'data_type', {})
+            data_type_name= t.get('data_type_name','') if isinstance(t, dict) else getattr(t, 'data_type_name', '')
+            if not tag_name:
+                continue
+            if tag_type == 'atomic' or (tag_type == '' and CIP_TO_UA.get((data_type_name or '').upper())):
+                entry = _tag_entry(tag_name, data_type_name, source)
+                if entry:
+                    discovered.append(entry)
+            elif tag_type == 'struct' and isinstance(data_type, dict):
+                # Expand atomic members of the struct (skip array members)
+                for member_name, member in data_type.get('internal_tags', {}).items():
+                    if not isinstance(member, dict):
+                        continue
+                    if member.get('array', 0) != 0:
+                        continue   # skip array members
+                    if member.get('tag_type', 'atomic') != 'atomic':
+                        continue
+                    m_type = member.get('data_type_name', '')
+                    entry = _tag_entry(f"{tag_name}.{member_name}", m_type, source)
+                    if entry:
+                        discovered.append(entry)
+
     try:
         with LogixDriver(plc_address) as plc:
-            raw_tags = plc.get_tag_list()
             discovered = []
-            for t in raw_tags:
-                # Only simple atomic types (skip UDT members here, they have a ".")
-                tag_name = t.tag_name
-                cip_type = (t.data_type_name or "").upper()
-                ua_type  = CIP_TO_UA.get(cip_type)
-                if not ua_type:
-                    continue   # skip UDTs, arrays of UDTs, etc.
-                if "." in tag_name or "[" in tag_name:
-                    continue   # skip member/array refs from flat list
-                # Guess a scan group from tag name prefix (e.g. "Motor_Speed" -> "Motor")
-                parts = tag_name.split("_")
-                grp = parts[0] if len(parts) > 1 else "default"
-                discovered.append({
-                    "cip_tag":    tag_name,
-                    "name":       tag_name,
-                    "cip_type":   cip_type,
-                    "ua_type":    ua_type,
-                    "scan_group": grp,
-                    "description": f"{cip_type} tag",
-                })
+
+            # 1 — controller-scoped tags
+            ctrl_tags = plc.get_tag_list()
+            log.info("Controller scope: %d raw tags", len(ctrl_tags))
+            _collect(ctrl_tags, "controller", discovered)
+
+            # 2 — program-scoped tags
+            # pycomm3 1.2.x populates plc.programs after get_tag_list()
+            program_names = []
+            try:
+                prog_attr = getattr(plc, 'programs', None) or getattr(plc, '_program_names', None)
+                if isinstance(prog_attr, dict):
+                    program_names = list(prog_attr.keys())
+                elif isinstance(prog_attr, (list, tuple)):
+                    program_names = list(prog_attr)
+            except Exception:
+                pass
+
+            if program_names:
+                log.info("Found %d programs: %s", len(program_names), program_names)
+                for prog in program_names:
+                    try:
+                        prog_tags = plc.get_tag_list(program=prog)
+                        log.info("Program %s: %d raw tags", prog, len(prog_tags))
+                        _collect(prog_tags, f"prog:{prog}", discovered)
+                    except Exception as pe:
+                        log.warning("Could not get tags for program %s: %s", prog, pe)
+            else:
+                log.info("No program names found via pycomm3 — only controller-scoped tags returned")
+
             with state_lock:
                 gateway_state["discovered_tags"] = discovered
-            log.info("Discovery complete: %d atomic tags found", len(discovered))
+            log.info("Discovery complete: %d total tags", len(discovered))
     except Exception as e:
-        log.error("Discovery failed: %s", e)
+        log.exception("Discovery failed")
         with state_lock:
             gateway_state["last_error"] = f"Discovery failed: {e}"
     finally:
@@ -319,7 +392,9 @@ def index():
 @flask_app.route("/api/state")
 def api_state():
     with state_lock:
-        return jsonify(dict(gateway_state))
+        s = dict(gateway_state)
+    s["host_ip"] = HOST_IP
+    return jsonify(s)
 
 @flask_app.route("/api/config", methods=["GET"])
 def api_config_get():

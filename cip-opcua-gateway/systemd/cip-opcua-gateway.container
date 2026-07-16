@@ -13,33 +13,29 @@ Wants=network-online.target
 # Image built locally — or push to an internal registry and reference it here
 Image=localhost/cip-opcua-gateway:latest
 
-# Mount your tags config (read-only into container)
-Volume=/etc/cip-opcua-gateway/tags.json:/config/tags.json:ro,z
+# Mount config dir (writable so Web UI can save changes)
+Volume=/etc/cip-opcua-gateway/tags.json:/config/tags.json:z
 
-# OPC-UA port — bind to specific IP if needed: 192.168.1.5:4840:4840
-PublishPort=4840:4840
+# Use host networking so the container shares the host's real IPs
+# (needed for correct OPC-UA endpoint advertisement and direct PLC reach)
+Network=host
 
 # Environment overrides
 Environment=LOG_LEVEL=INFO
 
 # Run as non-root; matches the uid baked into the image
-User=1001
-Group=1001
+User=1500
+Group=1500
 
 # Network access to PLC subnet (adjust or use host if needed)
 # Network=host   ← uncomment if PLC is on same L2 as host NIC
 
-# Resource limits
-Memory=256m
-CPUQuota=50%
-
-# Auto-restart on failure
-Restart=on-failure
-RestartSec=10s
-
 [Service]
 Restart=on-failure
+RestartSec=10s
 TimeoutStartSec=60
+MemoryMax=256M
+CPUQuota=50%
 
 [Install]
 WantedBy=default.target

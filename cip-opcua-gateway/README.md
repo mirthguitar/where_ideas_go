@@ -107,50 +107,97 @@ to `opc.tcp://<host-ip>:4840/gateway`.
 
 ---
 
-## Systemd / Auto-Start on RHEL (Podman Quadlet)
+## Deploying to an Air-Gapped / Offline RHEL Host
 
-Quadlet lets systemd manage Podman containers natively without writing
-unit files by hand.
+If the RHEL host has no internet access (no `dnf` repo reach, no container
+registry), build the image on a connected machine and ship it over:
 
 ```bash
-# Requires root
-make install-systemd
+# On a Mac/Linux machine with internet + Podman:
+podman build --platform linux/amd64 -t cip-opcua-gateway:latest -f Containerfile .
+podman save cip-opcua-gateway:latest -o /tmp/cip-gateway.tar
 
-# Enable and start
-sudo systemctl enable --now cip-opcua-gateway
+# Copy to the RHEL host:
+scp /tmp/cip-gateway.tar user@<rhel-host>:/tmp/
 
-# Check status
+# On the RHEL host (as root or via sudo):
+podman load -i /tmp/cip-gateway.tar
+```
+
+> **Note:** `podman save | ssh … podman load` also works to stream without a temp file.
+
+---
+
+## Systemd / Auto-Start on RHEL (Podman Quadlet)
+
+Quadlet (Podman ≥ 4.4, RHEL 9+) generates a systemd service from the
+`.container` file — no hand-written unit files needed.
+
+```bash
+# Install config and unit (run as root)
+mkdir -p /etc/cip-opcua-gateway
+cp config/tags.json /etc/cip-opcua-gateway/tags.json
+chown 1500:1500 /etc/cip-opcua-gateway/tags.json   # must be writable by container user
+chmod 644 /etc/cip-opcua-gateway/tags.json
+
+cp systemd/cip-opcua-gateway.container /etc/containers/systemd/
+
+systemctl daemon-reload          # triggers the Quadlet generator
+systemctl start cip-opcua-gateway
+```
+
+> **Important — `systemctl enable` does not work for Quadlet units.**
+> Quadlet-generated units live in `/run/systemd/generator/` (transient).
+> Use `systemctl start`; boot persistence is handled automatically via
+> `WantedBy=default.target` in the `[Install]` section.
+
+Check status and logs:
+```bash
 systemctl status cip-opcua-gateway
-
-# View logs via journald
 journalctl -u cip-opcua-gateway -f
 ```
 
-The Quadlet file is at `systemd/cip-opcua-gateway.container`.
+The Quadlet file is at [systemd/cip-opcua-gateway.container](systemd/cip-opcua-gateway.container).
+
+### Common Quadlet pitfalls on RHEL 9 / Podman 4.9
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Unit file does not exist` after `systemctl enable` | Quadlet units can't be enabled traditionally | Use `systemctl start` instead |
+| Generator silently skips the file | Invalid key in `[Container]` section | `Memory=`, `CPUQuota=`, `Restart=`, `RestartSec=` belong in `[Service]`, not `[Container]` |
+| `Invalid memory limit '256m'` | systemd requires uppercase suffixes | Use `MemoryMax=256M` |
+| Container tries to pull image at start | Image only in rootless (user) store | Load image with `sudo podman load` so root's store has it |
 
 ---
 
 ## Network / Firewall
 
-Open port 4840 on the gateway host for OPC-UA clients:
+The container runs with **`Network=host`** so it shares the host's
+network interfaces directly. This is required for:
+- Correct OPC-UA endpoint advertisement (shows the real host IP, not the container bridge IP)
+- Reliable CIP/EtherNet-IP connectivity (avoids Podman bridge NAT issues with EIP)
+
+Open ports on the gateway host:
 
 ```bash
-# RHEL firewalld
-sudo firewall-cmd --permanent --add-port=4840/tcp
+sudo firewall-cmd --permanent --add-port=4840/tcp   # OPC-UA
+sudo firewall-cmd --permanent --add-port=8088/tcp   # Web UI
 sudo firewall-cmd --reload
 ```
-
-If the PLC is on a separate VLAN, ensure the host NIC can route to
-`<plc_address>` on TCP 44818. You may need `--network=host` in the
-Podman run args if the container's bridge NAT blocks EtherNet/IP.
 
 ---
 
 ## SELinux Notes (RHEL)
 
-The volume mounts use the `:z` flag which automatically relabels the
-file for container access. If you still get `Permission denied`:
+The volume mount uses the `:z` flag which relabels the file for container
+access. The config file must also be owned by UID **1500** (the `gateway`
+user baked into the image) so the Web UI can save changes:
 
+```bash
+sudo chown 1500:1500 /etc/cip-opcua-gateway/tags.json
+```
+
+If you still get `Permission denied` after that:
 ```bash
 sudo chcon -t container_file_t /etc/cip-opcua-gateway/tags.json
 ```
