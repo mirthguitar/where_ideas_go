@@ -80,22 +80,32 @@ Edit `config/tags.json`:
 - Simple: `"Motor_Speed"`
 - Array element: `"Pressure[3]"`
 - UDT member: `"Drive[0].OutputFrequency"`
-- Program-scoped: `"Program:MainProgram.LocalTag"`
+- Program-scoped: `"Program:MainProgram.LocalTag"` ← use the full path exactly as shown
 
-### 3. Run (interactive/dev)
+> **Tip:** Instead of writing tags by hand, use the built-in Tag Discovery tool
+> described below to auto-enumerate every tag on the PLC.
+
+### 3. Discover tags automatically (recommended)
+
+Once the container is running, open the Web UI at `http://<host>:8088` and
+use the **Discover Tags** panel instead of editing `tags.json` by hand.
+
+See the [Tag Discovery](#tag-discovery) section below for details.
+
+### 4. Run (interactive/dev)
 
 ```bash
 make run
 ```
 
-### 4. Run (production, detached)
+### 5. Run (production, detached)
 
 ```bash
 make run-detached
 make logs
 ```
 
-### 5. Test the OPC-UA endpoint
+### 6. Test the OPC-UA endpoint
 
 Use any OPC-UA client. Quick Python test:
 ```bash
@@ -104,6 +114,64 @@ make test-ua
 
 Or use the free **UaExpert** desktop client (Unified Automation) — connect
 to `opc.tcp://<host-ip>:4840/gateway`.
+
+---
+
+## Tag Discovery
+
+The gateway has a built-in Web UI (port 8088) that can auto-enumerate all
+tags from a live PLC — no need to know tag names in advance.
+
+### How it works
+
+1. Open `http://<host>:8088` in a browser.
+2. Enter the PLC address and click **Discover Tags**.
+3. The gateway calls `pycomm3`'s `get_tag_list(program='*')`, which returns
+   **all controller-scoped and program-scoped tags** in a single round-trip.
+4. The result table shows every discovered tag with its CIP address,
+   data type, and suggested OPC-UA type.
+5. Select the tags you want to monitor and click **Apply** — the config is
+   saved and the gateway restarts with the selected tag set.
+
+### Controller-scoped vs Program-scoped tags
+
+Rockwell ControlLogix programs organise tags into two namespaces:
+
+| Scope | Example CIP address | When to use |
+|-------|--------------------|-----------|
+| Controller | `Motor_Speed` | Tags shared across all programs |
+| Program | `Program:FastProgram.LocalTag` | Tags private to a specific routine |
+
+Pycomm3 fully qualifies program-scoped tags as `Program:<name>.<tag>`, and
+the gateway uses that exact string both for discovery display and for live
+polling reads — so you can freely mix controller and program tags in the
+same configuration.
+
+### Discovery implementation notes
+
+Prior to the current implementation, `get_tag_list()` (no argument) was
+used, which returns **controller-scoped tags only**. Pycomm3 internally
+uploads program tags as a side-effect of that call (visible in the logs as
+`Beginning upload of FastProgram tags…`) but does **not** include them in
+the return value.
+
+The fix was to call `get_tag_list(program='*')`, which:
+- fetches the full controller tag list, then
+- iterates `self._info["programs"]` (populated automatically) and fetches
+  each program's tag list,
+- returns everything combined as a flat list with fully-qualified names.
+
+This is documented in the pycomm3 source:
+```
+:param program: scope to retrieve tag list,
+               None for controller-only tags,
+               '*' for all tags,
+               else name of program
+```
+
+Struct members are expanded automatically by the `_collect()` helper in
+`gateway.py` — arrays and nested-struct members are skipped to keep the
+list manageable.
 
 ---
 
@@ -125,6 +193,28 @@ podman load -i /tmp/cip-gateway.tar
 ```
 
 > **Note:** `podman save | ssh … podman load` also works to stream without a temp file.
+
+### Updating `gateway.py` on an air-gapped host
+
+If the host cannot rebuild the image (no registry access) but you need to
+update the Python application code, bind-mount the new file over the
+baked-in copy:
+
+```bash
+# 1. Copy the updated script to the config directory on the host
+sudo cp gateway.py /etc/cip-opcua-gateway/gateway.py
+
+# 2. Add a Volume line to the Quadlet unit
+sudo sed -i '/Volume=.*tags.json/a Volume=/etc/cip-opcua-gateway/gateway.py:/app/gateway.py:z' \
+    /etc/containers/systemd/cip-opcua-gateway.container
+
+# 3. Reload and restart
+sudo systemctl daemon-reload
+sudo systemctl restart cip-opcua-gateway
+```
+
+To roll back, remove the `Volume=…/gateway.py` line and restart.
+The original script baked into the image is always preserved.
 
 ---
 

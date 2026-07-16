@@ -157,22 +157,23 @@ def discover_tags_thread(plc_address: str):
 
     log.info("Discovering tags from %s ...", plc_address)
 
-    def _tag_entry(tag_name, cip_type, source="controller"):
+    def _tag_entry(tag_name, cip_type, source="controller", cip_prefix=""):
         ua_type = CIP_TO_UA.get(cip_type.upper())
         if not ua_type:
             return None
         parts = tag_name.replace("Program:", "").split("_")
         grp = parts[0] if len(parts) > 1 else source
+        cip_tag = f"{cip_prefix}{tag_name}" if cip_prefix else tag_name
         return {
-            "cip_tag":     tag_name,
-            "name":        tag_name,
+            "cip_tag":     cip_tag,
+            "name":        cip_tag,
             "cip_type":    cip_type.upper(),
             "ua_type":     ua_type,
             "scan_group":  grp,
             "description": f"{cip_type.upper()} ({source})",
         }
 
-    def _collect(raw_tags, source, discovered):
+    def _collect(raw_tags, source, discovered, cip_prefix=""):
         """Walk a raw tag list and append atomic entries, expanding struct members."""
         for t in raw_tags:
             tag_name      = t.get('tag_name', '')    if isinstance(t, dict) else t.tag_name
@@ -182,7 +183,7 @@ def discover_tags_thread(plc_address: str):
             if not tag_name:
                 continue
             if tag_type == 'atomic' or (tag_type == '' and CIP_TO_UA.get((data_type_name or '').upper())):
-                entry = _tag_entry(tag_name, data_type_name, source)
+                entry = _tag_entry(tag_name, data_type_name, source, cip_prefix)
                 if entry:
                     discovered.append(entry)
             elif tag_type == 'struct' and isinstance(data_type, dict):
@@ -195,7 +196,7 @@ def discover_tags_thread(plc_address: str):
                     if member.get('tag_type', 'atomic') != 'atomic':
                         continue
                     m_type = member.get('data_type_name', '')
-                    entry = _tag_entry(f"{tag_name}.{member_name}", m_type, source)
+                    entry = _tag_entry(f"{tag_name}.{member_name}", m_type, source, cip_prefix)
                     if entry:
                         discovered.append(entry)
 
@@ -203,34 +204,12 @@ def discover_tags_thread(plc_address: str):
         with LogixDriver(plc_address) as plc:
             discovered = []
 
-            # 1 — controller-scoped tags
-            ctrl_tags = plc.get_tag_list()
-            log.info("Controller scope: %d raw tags", len(ctrl_tags))
-            _collect(ctrl_tags, "controller", discovered)
-
-            # 2 — program-scoped tags
-            # pycomm3 1.2.x populates plc.programs after get_tag_list()
-            program_names = []
-            try:
-                prog_attr = getattr(plc, 'programs', None) or getattr(plc, '_program_names', None)
-                if isinstance(prog_attr, dict):
-                    program_names = list(prog_attr.keys())
-                elif isinstance(prog_attr, (list, tuple)):
-                    program_names = list(prog_attr)
-            except Exception:
-                pass
-
-            if program_names:
-                log.info("Found %d programs: %s", len(program_names), program_names)
-                for prog in program_names:
-                    try:
-                        prog_tags = plc.get_tag_list(program=prog)
-                        log.info("Program %s: %d raw tags", prog, len(prog_tags))
-                        _collect(prog_tags, f"prog:{prog}", discovered)
-                    except Exception as pe:
-                        log.warning("Could not get tags for program %s: %s", prog, pe)
-            else:
-                log.info("No program names found via pycomm3 — only controller-scoped tags returned")
+            # program='*' returns controller + all program-scoped tags in one call.
+            # Program-scoped tag names are already fully qualified by pycomm3:
+            # e.g. 'Program:FastProgram.MyTag' — no prefix manipulation needed.
+            all_tags = plc.get_tag_list(program='*')
+            log.info("Tag list (all scopes): %d raw tags", len(all_tags))
+            _collect(all_tags, "all", discovered)
 
             with state_lock:
                 gateway_state["discovered_tags"] = discovered
